@@ -3,7 +3,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { initPg, openPg } from './pg-db.mjs';
 
 const local = new DatabaseSync(process.env.TRACKER_DB || path.resolve('data/tracker.sqlite'), { readOnly: true });
-const remote = openPg();
+const remote = openPg(process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL);
 try {
   await initPg(remote);
   const runs = local.prepare('SELECT * FROM runs ORDER BY id').all();
