@@ -4,7 +4,7 @@ A local dashboard and scheduled collector for Volvo and Scania buses on Bengalur
 
 ## Run
 
-Requires Node.js 24 or newer. No package installation is needed.
+Requires Node.js 24 or newer. On a fresh clone, run `npm.cmd ci` first.
 
 ```powershell
 npm.cmd start
@@ -18,15 +18,21 @@ The dashboard shows the latest Volvo/Scania listings, lowest and median route fa
 
 ## Run while your computer is off (free services)
 
-The hosted setup uses **Vercel Hobby** for the dashboard, **GitHub Actions** for hourly collection, and **Neon Free Postgres** for durable observations. Vercel Hobby's own cron is limited to once daily, so the scheduled collector runs on GitHub instead. The repository is public so standard GitHub-hosted Actions minutes are free; never put database credentials in Git or workflow logs. No redBus account is used.
+The [live dashboard](https://bus-price-tracker-vercel.vercel.app) uses **Vercel Hobby** for viewing data, **GitHub Actions** for scheduled collection, and **Neon Free Postgres** for durable observations. Vercel Hobby's own cron is limited to once daily, so the scheduled collector runs on GitHub instead. The repository is public so standard GitHub-hosted Actions minutes are free. No redBus account is used.
+
+This installation is connected and running: Neon contains the imported local history, `DATABASE_URL` is configured as a GitHub Actions secret and a Vercel environment variable, and a GitHub-hosted collection run successfully wrote fresh fares on 28 September 2026. The public dashboard and CSV export were checked against those records. You do not need to keep your computer awake or repeat the account setup below. Keep the repository secret and Vercel environment variable in place; never put the connection string in Git or workflow logs.
+
+To monitor it, open [Collect bus fares runs](https://github.com/saisrama/bus-price-tracker/actions/workflows/collect.yml) and check the latest result. The workflow is scheduled for minute 17 of each UTC hour, but GitHub can delay or skip scheduled jobs. You can start an extra run from **Run workflow** on that page. Check the dashboard's source status and [Neon usage](https://console.neon.tech/) periodically. The existing local Windows task is independent of the hosted setup; you can stop it with `Stop-ScheduledTask -TaskName 'Bus Fare Tracker'` if you only use the public dashboard.
+
+To recreate the hosted setup on another account:
 
 1. Create a free Neon Postgres database and copy both its pooled and direct connection strings. Choose a region close to India if offered. The free storage allowance is limited, so monitor usage. Cloud captures store the normalized fare, seat, operator, and service fields but omit the large raw listing JSON by default; set `STORE_RAW_JSON=1` in the collector environment only if you need it and can manage the extra storage.
-2. In GitHub, open this repository's **Settings → Secrets and variables → Actions → New repository secret**. Add `DATABASE_URL` with the Neon **pooled** connection string. The [hourly workflow](.github/workflows/collect.yml) runs at minute 17 UTC and can also be started with **Actions → Collect bus fares → Run workflow**. It skips collection until the secret exists. Confirm its first run logs a nonzero bus count; source access from GitHub runners is unverified.
+2. In GitHub, open this repository's **Settings → Secrets and variables → Actions → New repository secret**. Add `DATABASE_URL` with the Neon **pooled** connection string. The [hourly workflow](.github/workflows/collect.yml) skips collection until the secret exists. Confirm its first run logs a nonzero bus count.
 3. To copy the history already on this computer, set `DATABASE_URL` to the Neon **direct** connection string only in your local PowerShell session and run `npm.cmd run migrate:local`. The command imports runs and observations from `data/tracker.sqlite` and can be rerun without duplicating them. Do not paste the URL into a committed file.
 4. In Vercel, import this GitHub repository into a Hobby project. Leave the Framework Preset as **Other**; `vercel.json` serves `public/` and the `api/` functions. Set the same **pooled** `DATABASE_URL` as a Vercel environment variable for Production, then deploy. Check `/api/config`, `/api/data`, and the graphs on the deployed URL. This dashboard is publicly viewable; it does not expose the raw source JSON or database password.
 5. Only after the cloud workflow and dashboard both show new observations, stop the local **Bus Fare Tracker** Windows task if you no longer need it: `Stop-ScheduledTask -TaskName 'Bus Fare Tracker'`. The local SQLite database remains intact.
 
-GitHub scheduled jobs can run late or be skipped, and redBus may block data-center IPs. A successful deployment therefore does not prove collection works until a cloud workflow completes with listings. The collector records errors in the dashboard, but the current setup does not send alerts. Review GitHub Actions and Neon usage periodically; even without raw JSON, the growing history can eventually reach Neon's free storage limit.
+GitHub scheduled jobs can run late or be skipped, and redBus may block data-center IPs later. The collector records errors in the dashboard, but the current setup does not send alerts. Even without raw JSON, the growing history can eventually reach Neon's free storage limit.
 
 ## Collection
 
@@ -46,6 +52,6 @@ This is an unofficial integration with a site endpoint that may change or reject
 
 Gender-restricted available-seat counts are recorded only if the results response explicitly includes them. The verified results response did not include those counts. The seat map has not been integrated, so these fields remain blank for now. The displayed fare is the lowest in the result's fare list, not necessarily the final seat-level payable amount. The full source listing is retained in the database for later analysis.
 
-The collector can identify only listings that explicitly name Volvo or Scania in the bus type; a branded coach listed under a marketing name alone may be missed. It starts seven days ahead and cannot reconstruct prices before its first observation. The booking-time prediction model is not trained yet; it needs accumulated completed trips and a holiday/festival calendar before its advice can be validated. The local dashboard binds to this computer; the Vercel deployment is separate and reads the cloud database. Neither setup currently sends alerts.
+The collector can identify only listings that explicitly name Volvo or Scania in the bus type; a branded coach listed under a marketing name alone may be missed. It starts seven days ahead and cannot reconstruct prices before its first observation. The booking-time prediction model is not trained yet; it needs accumulated completed trips and a holiday/festival calendar before its advice can be validated. The local dashboard binds to this computer and retains raw source listings; the Vercel deployment reads normalized observations from the cloud database. Neither setup currently sends alerts.
 
 The collector does not solve CAPTCHAs, rotate identities or IPs, or defeat access challenges. It uses a bounded request rate and a cooldown on failure. redBus may restrict the endpoint or change its terms; review the [redBus user agreement](https://www.redbus.in/info/useragreement) and [robots.txt](https://www.redbus.in/robots.txt) before running unattended collection.
