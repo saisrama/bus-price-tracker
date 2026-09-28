@@ -58,6 +58,7 @@ export async function finishRun(db, id, status, count = 0, error = null) {
 export async function saveObservations(db, runId, items) {
   if (!items.length) return;
   const observedAt = new Date().toISOString();
+  const keepRaw = process.env.STORE_RAW_JSON === '1';
   const client = await db.connect();
   try {
     await client.query('BEGIN');
@@ -69,7 +70,7 @@ export async function saveObservations(db, runId, items) {
       [runId, observedAt, item.route, item.travelDate, item.serviceKey, item.sourceId,
         item.operator, item.busType, item.departureTime, item.arrivalTime, item.fareMin,
         item.fareMax, item.seatsLeft, item.womenSeatsLeft, item.menSeatsLeft,
-        item.sourceUrl, JSON.stringify(item.raw)]);
+        item.sourceUrl, keepRaw ? JSON.stringify(item.raw) : null]);
     }
     await client.query('COMMIT');
   } catch (error) {
