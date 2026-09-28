@@ -106,3 +106,24 @@ test('capture cadence increases near departure', () => {
   assert.equal(intervalHours('2026-10-05', new Date('2026-09-28T00:00:00Z')), 12);
   assert.equal(intervalHours('2026-10-05', new Date('2026-10-04T18:30:00Z')), 1);
 });
+
+test('cloud collection waits for asynchronous storage before reporting success', async () => {
+  const events = [];
+  const store = {
+    beginRun: async () => { events.push('begin'); return 7; },
+    saveObservations: async (_db, _id, items) => {
+      await new Promise(resolve => setTimeout(resolve, 5));
+      assert.equal(items.length, 1);
+      events.push('saved');
+    },
+    finishRun: async (_db, _id, status) => { events.push(status); },
+  };
+  const fetchImpl = async () => ({ ok: true, headers: { get: () => 'application/json' }, json: async () => ({
+    data: { metaData: { sections: [{ privateCount: 1 }] }, inventories: [
+      { routeId: 1, travelsName: 'A', busType: 'Volvo B11R', departureTime: '20:00', fareList: [1200] },
+    ] },
+  }) });
+  const result = await collectRouteDate(null, ROUTES[0], '2026-10-05', { store, fetchImpl, pageDelayMs: 0 });
+  assert.equal(result.status, 'success');
+  assert.deepEqual(events, ['begin', 'saved', 'success']);
+});

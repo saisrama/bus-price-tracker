@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { siteDate } from './config.mjs';
-import { beginRun, finishRun, saveObservations } from './db.mjs';
+import * as localStore from './db.mjs';
 
 const SOURCE = 'https://www.redbus.in';
 const PAGE_SIZE = 50;
@@ -180,7 +180,8 @@ export async function fetchPage(route, travelDate, offset, fetchImpl, groupId = 
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function collectRouteDate(db, route, travelDate, options = {}) {
-  const runId = beginRun(db, route.key, travelDate);
+  const store = options.store ?? localStore;
+  const runId = await store.beginRun(db, route.key, travelDate);
   const results = new Map();
   try {
     let fetched = 0;
@@ -214,16 +215,16 @@ export async function collectRouteDate(db, route, travelDate, options = {}) {
       await pause(options.pageDelayMs ?? 2000);
       await pageThrough(group.groupId, group.sectionId, readNumber(group.count));
     }
-    saveObservations(db, runId, [...results.values()]);
-    finishRun(db, runId, 'success', results.size);
+    await store.saveObservations(db, runId, [...results.values()]);
+    await store.finishRun(db, runId, 'success', results.size);
     return { runId, status: 'success', count: results.size, totalListings: fetched };
   } catch (error) {
     if (results.size) {
-      saveObservations(db, runId, [...results.values()]);
-      finishRun(db, runId, 'partial', results.size, error.message);
+      await store.saveObservations(db, runId, [...results.values()]);
+      await store.finishRun(db, runId, 'partial', results.size, error.message);
       return { runId, status: 'partial', count: results.size, error: error.message };
     }
-    finishRun(db, runId, 'error', 0, error.message);
+    await store.finishRun(db, runId, 'error', 0, error.message);
     return { runId, status: 'error', error: error.message };
   }
 }

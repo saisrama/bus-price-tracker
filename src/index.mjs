@@ -75,7 +75,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, dataFor(route, date));
     }
     if (req.method === 'GET' && url.pathname === '/api/config') {
-      return json(res, { routes: ROUTES, today: istDate(), tomorrow: addDays(istDate(), 1) });
+      return json(res, { routes: ROUTES, today: istDate(), tomorrow: addDays(istDate(), 1), canCollect: true });
     }
     if (req.method === 'POST' && url.pathname === '/api/collect') {
       if (collecting) return json(res, { message: 'Collection already running' }, 409);

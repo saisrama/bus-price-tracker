@@ -3,6 +3,7 @@ const fmtMoney = value => value == null ? '—' : `₹${Math.round(value).toLoca
 const fmtTime = value => value ? new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value)) : '—';
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 let state = { observations: [], runs: [], selected: null };
+let exportPath = '/api/export.csv';
 
 function median(values) {
   if (!values.length) return null;
@@ -103,12 +104,14 @@ async function load() {
   const response = await fetch(`/api/data?route=${encodeURIComponent(route)}&date=${encodeURIComponent(date)}`);
   if (!response.ok) throw new Error(`Dashboard returned HTTP ${response.status}`);
   state = { ...state, ...await response.json() };
-  $('export-link').href = `/api/export.csv?route=${encodeURIComponent(route)}&date=${encodeURIComponent(date)}`;
+  $('export-link').href = `${exportPath}?route=${encodeURIComponent(route)}&date=${encodeURIComponent(date)}`;
   render();
 }
 
 async function start() {
   const config = await (await fetch('/api/config')).json();
+  exportPath = config.exportPath ?? exportPath;
+  if (config.canCollect === false) $('collect-button').hidden = true;
   $('route').innerHTML = config.routes.map(route => `<option value="${route.key}">${escapeHtml(route.label)}</option>`).join('');
   $('travel-date').value = config.tomorrow;
   $('route').addEventListener('change', load);
