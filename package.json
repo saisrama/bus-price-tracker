@@ -1,0 +1,15 @@
+{
+  "name": "bus-price-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.mjs",
+    "collect": "node src/index.mjs --once",
+    "collect:one": "node src/collect-one.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

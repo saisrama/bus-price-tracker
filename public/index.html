@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bus Fare Tracker</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-icon">↗</span><span>BUS FARE<br><strong>TRACKER</strong></span></div>
+    <div class="topright"><span class="eyebrow">BENGALURU ↔ HYDERABAD</span><span id="collection-state" class="state">Checking collector…</span></div>
+  </header>
+  <main>
+    <section class="intro">
+      <div><p class="eyebrow accent">LIVE PRICE HISTORY</p><h1>Know how the fare moves.</h1><p class="subhead">Every observed Volvo and Scania departure, tracked as booking time runs out.</p></div>
+      <div class="intro-actions"><button id="collect-button" type="button">Collect now <span>↗</span></button><a id="export-link" href="#">Export CSV ↓</a></div>
+    </section>
+    <section class="filters" aria-label="Filters">
+      <label>ROUTE<select id="route"></select></label>
+      <label>TRAVEL DATE<input id="travel-date" type="date"></label>
+      <label>FIND A BUS<input id="search" type="search" placeholder="Operator or bus type"></label>
+    </section>
+    <section class="stats" aria-label="Current snapshot">
+      <article><p>TRACKED BUSES</p><strong id="stat-buses">—</strong><span>Volvo + Scania</span></article>
+      <article><p>LOWEST FARE</p><strong id="stat-low">—</strong><span>Current listed fare</span></article>
+      <article><p>MEDIAN FARE</p><strong id="stat-median">—</strong><span>Across listed buses</span></article>
+      <article><p>LAST CAPTURE</p><strong id="stat-time" class="small-stat">—</strong><span id="stat-captures">0 snapshots stored</span></article>
+    </section>
+    <section class="status-row"><span id="status-message">Loading observations…</span><span id="status-source">Source: redBus</span></section>
+    <section class="chart-grid">
+      <article class="panel market-panel"><div class="panel-header"><div><p class="eyebrow">THE ROUTE</p><h2>Fare movement</h2></div><span class="legend"><i class="legend-dot"></i> Lowest fare&nbsp;&nbsp; <i class="legend-dot muted"></i> Median fare</span></div><div id="market-chart" class="chart"></div></article>
+      <article class="panel detail-panel"><div class="panel-header"><div><p class="eyebrow">SELECTED SERVICE</p><h2 id="selected-title">Choose a bus</h2></div></div><div id="service-chart" class="chart"></div><div id="seat-chart" class="mini-chart"></div></article>
+    </section>
+    <section class="panel listing-panel"><div class="panel-header"><div><p class="eyebrow">LATEST OBSERVATION</p><h2>All tracked departures</h2></div><span id="listing-count" class="pill">0 buses</span></div><div class="table-wrap"><table><thead><tr><th>OPERATOR / COACH</th><th>DEPARTS</th><th>FARE</th><th>SEATS LEFT</th><th>LAST SEEN</th><th></th></tr></thead><tbody id="bus-rows"></tbody></table></div></section>
+    <footer>Fares are observations, not guaranteed booking prices. Seat restrictions appear only when the source supplies them.</footer>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>
