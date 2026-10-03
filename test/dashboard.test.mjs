@@ -37,6 +37,26 @@ test('dashboard retains each service when snapshots arrive at different times', 
   assert.match(scatter.note, /1 of 1 snapshots/);
 });
 
+test('custom graphs connect each service in observation order without joining different buses', () => {
+  const common = { travel_date: '2026-10-05', bus_type: 'Volvo', departure_time: '20:00' };
+  const rows = [
+    { ...common, service_key: 'a', operator: 'A', observed_at: '2026-10-04T10:00:00Z', fare_min: 1200, seats_left: 8 },
+    { ...common, service_key: 'b', operator: 'B', observed_at: '2026-10-04T10:30:00Z', fare_min: 1300, seats_left: 5 },
+    { ...common, service_key: 'a', operator: 'A', observed_at: '2026-10-04T11:00:00Z', fare_min: 1100, seats_left: 7 },
+    { ...common, service_key: 'b', operator: 'B', observed_at: '2026-10-04T11:30:00Z', fare_min: 1250, seats_left: 4 },
+  ];
+  const { html, note } = customGraph(rows, { scope: 'all', xKey: 'seats_left', yKey: 'fare_min' });
+  const paths = [...html.matchAll(/<path d="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(paths.length, 2);
+  assert.ok(paths.every(path => (path.match(/L/g) || []).length === 1));
+  assert.match(paths[0], /^M736\.0,[\d.]+ L568\.0,[\d.]+$/);
+  assert.match(paths[1], /^M232\.0,[\d.]+ L64\.0,[\d.]+$/);
+  assert.equal((html.match(/<circle /g) || []).length, 4);
+  assert.match(html, /preserveAspectRatio="xMidYMid meet"/);
+  assert.match(html, /<div class="chart-tooltip" role="status"/);
+  assert.match(note, /Lines connect each service's observations in time order/);
+});
+
 test('dashboard renders past service history and custom graph controls', async () => {
   const elements = new Map();
   function element(id) {

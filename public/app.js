@@ -102,12 +102,12 @@ function graph(series, options = {}) {
   const ticks = `<text x="${pad.l}" y="${height - (options.xLabel ? 27 : 7)}" class="axis-tick">${escapeHtml(xFormat(xMin))}</text>${xMax > xMin ? `<text x="${width - pad.r}" y="${height - (options.xLabel ? 27 : 7)}" text-anchor="end" class="axis-tick">${escapeHtml(xFormat(xMax))}</text>` : ''}`;
   const axis = options.xLabel ? `<text x="${width / 2}" y="${height - 5}" text-anchor="middle" class="axis-label">${escapeHtml(options.xLabel)}</text>` : '';
   const marks = series.map(item => {
-    const points = item.points.filter(point => Number.isFinite(point.x) && Number.isFinite(point.y)).sort((a, b) => a.x - b.x);
+    const points = item.points.filter(point => Number.isFinite(point.x) && Number.isFinite(point.y)).sort((a, b) => (a.order ?? a.x) - (b.order ?? b.x));
     const path = item.connect && points.length > 1 ? `<path d="${points.map((point, index) => `${index ? 'L' : 'M'}${x(point.x).toFixed(1)},${y(point.y).toFixed(1)}`).join(' ')}" fill="none" stroke="${item.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : '';
     const dots = points.map(point => `<circle cx="${x(point.x)}" cy="${y(point.y)}" r="4.8" fill="${item.color}" stroke="white" stroke-width="1.3" tabindex="0" data-tip="${escapeHtml(point.tip || `${xFormat(point.x)} · ${yFormat(point.y)}`)}" aria-label="${escapeHtml(point.tip || `${xFormat(point.x)} · ${yFormat(point.y)}`)}"/>`).join('');
     return path + dots;
   }).join('');
-  return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(options.label || 'Observation graph')}" preserveAspectRatio="none">${grid}${marks}${ticks}${axis}</svg><div class="chart-tooltip" hidden></div>`;
+  return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(options.label || 'Observation graph')}" preserveAspectRatio="xMidYMid meet">${grid}${marks}${ticks}${axis}</svg><div class="chart-tooltip" role="status" aria-live="polite">Hover or focus a point to inspect its observation.</div>`;
 }
 
 function attachTooltips(container) {
@@ -116,20 +116,12 @@ function attachTooltips(container) {
     const tip = container.querySelector('.chart-tooltip');
     if (!point || !tip) return;
     tip.textContent = point.dataset.tip;
-    tip.hidden = false;
-    const bounds = container.getBoundingClientRect();
-    const target = point.getBoundingClientRect();
-    const px = 'clientX' in event ? event.clientX - bounds.left : target.left + target.width / 2 - bounds.left;
-    const py = 'clientY' in event ? event.clientY - bounds.top : target.top - bounds.top;
-    tip.style.left = `${Math.max(8, Math.min(px + 12, bounds.width - tip.offsetWidth - 8))}px`;
-    tip.style.top = `${Math.max(8, py - tip.offsetHeight - 12)}px`;
   }
   function hide() {
     const tip = container.querySelector('.chart-tooltip');
-    if (tip) tip.hidden = true;
+    if (tip) tip.textContent = 'Hover or focus a point to inspect its observation.';
   }
   container.addEventListener('pointerover', show);
-  container.addEventListener('pointermove', show);
   container.addEventListener('pointerout', hide);
   container.addEventListener('focusin', show);
   container.addEventListener('focusout', hide);
@@ -137,18 +129,24 @@ function attachTooltips(container) {
 
 function customGraph(observations, { scope, xKey, yKey }) {
   const rows = scope === 'all' ? observations : observations.filter(row => row.service_key === state.selected);
-  const points = rows.map(row => {
+  const byService = new Map();
+  for (const row of rows) {
     const x = metricValue(row, xKey), y = metricValue(row, yKey);
-    return { x, y, tip: pointDetails(row, `${metrics[xKey].label}: ${Number.isFinite(x) ? metrics[xKey].format(xKey === 'observed_at' ? row.observed_at : x) : 'unknown'}\n${metrics[yKey].label}: ${Number.isFinite(y) ? metrics[yKey].format(y) : 'unknown'}`) };
-  }).filter(point => Number.isFinite(point.x) && Number.isFinite(point.y));
-  const html = graph([{ color: '#0d795e', points, connect: scope === 'selected' && xKey === 'observed_at' }], {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    if (!byService.has(row.service_key)) byService.set(row.service_key, []);
+    byService.get(row.service_key).push({ x, y, order: Date.parse(row.observed_at), tip: pointDetails(row, `${metrics[xKey].label}: ${metrics[xKey].format(xKey === 'observed_at' ? row.observed_at : x)}\n${metrics[yKey].label}: ${metrics[yKey].format(y)}`) });
+  }
+  const colors = ['#0d795e', '#df9550', '#4879ab', '#9269a6', '#a95f6c', '#688445'];
+  const series = [...byService.values()].map((points, index) => ({ color: colors[index % colors.length], points, connect: true }));
+  const count = series.reduce((total, item) => total + item.points.length, 0);
+  const html = graph(series, {
     label: `${metrics[yKey].label} by ${metrics[xKey].label}`,
     xFormat: value => xKey === 'observed_at' ? fmtTime(value) : metrics[xKey].format(value),
     yFormat: metrics[yKey].format,
     xLabel: metrics[xKey].label,
     empty: 'No snapshots have both selected values. Try another axis or service.',
   });
-  return { html, note: `${points.length} of ${rows.length} snapshots have both values. Hover or focus a point for its full observation.` };
+  return { html, note: `${count} of ${rows.length} snapshots have both values. Lines connect each service's observations in time order; a service needs at least two snapshots for a line. Hover or focus a point for its full observation.` };
 }
 
 function currentGraphConfig() {
