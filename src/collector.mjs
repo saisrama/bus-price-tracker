@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { siteDate } from './config.mjs';
+import { hoursUntilDeparture, intervalHoursForBus, siteDate } from './config.mjs';
 import * as localStore from './db.mjs';
 
 const SOURCE = 'https://www.redbus.in';
@@ -183,6 +183,19 @@ export async function collectRouteDate(db, route, travelDate, options = {}) {
   const store = options.store ?? localStore;
   const runId = await store.beginRun(db, route.key, travelDate);
   const results = new Map();
+  async function saveDueObservations() {
+    const now = options.now ?? new Date();
+    const latest = await store.latestObservations(db, route.key, travelDate);
+    const due = [...results.values()].filter(item => {
+      const hoursLeft = hoursUntilDeparture(travelDate, item.departureTime, now);
+      if (hoursLeft !== null && hoursLeft <= 0) return false;
+      const last = latest.get(item.serviceKey);
+      return !last || now.getTime() - Date.parse(last) >=
+        intervalHoursForBus(travelDate, item.departureTime, now) * 3_600_000;
+    });
+    await store.saveObservations(db, runId, due);
+    return due.length;
+  }
   try {
     let fetched = 0;
     const initial = await fetchPage(route, travelDate, 0, options.fetchImpl);
@@ -215,14 +228,14 @@ export async function collectRouteDate(db, route, travelDate, options = {}) {
       await pause(options.pageDelayMs ?? 2000);
       await pageThrough(group.groupId, group.sectionId, readNumber(group.count));
     }
-    await store.saveObservations(db, runId, [...results.values()]);
+    const savedCount = await saveDueObservations();
     await store.finishRun(db, runId, 'success', results.size);
-    return { runId, status: 'success', count: results.size, totalListings: fetched };
+    return { runId, status: 'success', count: results.size, savedCount, totalListings: fetched };
   } catch (error) {
     if (results.size) {
-      await store.saveObservations(db, runId, [...results.values()]);
+      const savedCount = await saveDueObservations();
       await store.finishRun(db, runId, 'partial', results.size, error.message);
-      return { runId, status: 'partial', count: results.size, error: error.message };
+      return { runId, status: 'partial', count: results.size, savedCount, error: error.message };
     }
     await store.finishRun(db, runId, 'error', 0, error.message);
     return { runId, status: 'error', error: error.message };

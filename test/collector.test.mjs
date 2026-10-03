@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ROUTES, intervalHours, siteDate } from '../src/config.mjs';
+import { ROUTES, intervalHours, intervalHoursForBus, siteDate } from '../src/config.mjs';
 import { openDb } from '../src/db.mjs';
 import { collectRouteDate, extractBuses, isTargetBus, normalizeBus, searchGroups } from '../src/collector.mjs';
 
@@ -105,12 +105,47 @@ test('capture cadence increases near departure', () => {
   assert.equal(siteDate('2026-10-05'), '05-Oct-2026');
   assert.equal(intervalHours('2026-10-05', new Date('2026-09-28T00:00:00Z')), 12);
   assert.equal(intervalHours('2026-10-05', new Date('2026-10-04T18:30:00Z')), 1);
+  const now = new Date('2026-10-04T06:30:00Z');
+  assert.equal(intervalHoursForBus('2026-10-05', '06:00', now), 3);
+  assert.equal(intervalHoursForBus('2026-10-05', '23:00', now), 6);
+  assert.equal(intervalHoursForBus('2026-10-05', '11:00 PM', now), 6);
+  assert.equal(intervalHoursForBus('2026-10-05', '23:00:00', now), 6);
+});
+
+test('each service keeps its own departure-based snapshot interval and earlier history', async () => {
+  const db = openDb(':memory:');
+  const date = '2026-10-05';
+  const fetchImpl = async () => ({ ok: true, headers: { get: () => 'application/json' }, json: async () => ({
+    data: { metaData: { sections: [{ privateCount: 2 }] }, inventories: [
+      { routeId: 1, travelsName: 'Early', busType: 'Volvo', departureTime: '06:00', fareList: [1200] },
+      { routeId: 2, travelsName: 'Late', busType: 'Scania', departureTime: '23:00', fareList: [1400] },
+    ] },
+  }) });
+  const first = await collectRouteDate(db, ROUTES[0], date, { fetchImpl, now: new Date('2026-10-04T06:30:00Z') });
+  assert.equal(first.savedCount, 2);
+  db.prepare("UPDATE observations SET observed_at='2026-10-04T06:30:00.000Z'").run();
+  const second = await collectRouteDate(db, ROUTES[0], date, { fetchImpl, now: new Date('2026-10-04T10:00:00Z') });
+  assert.equal(second.count, 2);
+  assert.equal(second.savedCount, 1);
+  assert.deepEqual(db.prepare(`SELECT departure_time, COUNT(*) AS snapshots FROM observations
+    GROUP BY departure_time ORDER BY departure_time`).all().map(row => ({ ...row })), [
+    { departure_time: '06:00', snapshots: 2 }, { departure_time: '23:00', snapshots: 1 },
+  ]);
+  const afterEarlyDeparture = await collectRouteDate(db, ROUTES[0], date,
+    { fetchImpl, now: new Date('2026-10-05T01:30:00Z') });
+  assert.equal(afterEarlyDeparture.savedCount, 1);
+  assert.deepEqual(db.prepare(`SELECT departure_time, COUNT(*) AS snapshots FROM observations
+    GROUP BY departure_time ORDER BY departure_time`).all().map(row => ({ ...row })), [
+    { departure_time: '06:00', snapshots: 2 }, { departure_time: '23:00', snapshots: 2 },
+  ]);
+  db.close();
 });
 
 test('cloud collection waits for asynchronous storage before reporting success', async () => {
   const events = [];
   const store = {
     beginRun: async () => { events.push('begin'); return 7; },
+    latestObservations: async () => new Map(),
     saveObservations: async (_db, _id, items) => {
       await new Promise(resolve => setTimeout(resolve, 5));
       assert.equal(items.length, 1);

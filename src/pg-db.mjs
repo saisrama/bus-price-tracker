@@ -87,6 +87,12 @@ export async function latestRun(db, route, date) {
   return rows[0];
 }
 
+export async function latestObservations(db, route, date) {
+  const { rows } = await db.query(`SELECT service_key, MAX(observed_at) AS observed_at
+    FROM observations WHERE route=$1 AND travel_date=$2 GROUP BY service_key`, [route, date]);
+  return new Map(rows.map(row => [row.service_key, row.observed_at]));
+}
+
 export async function dataFor(db, route, date) {
   const [observations, runs, sourceStatus] = await Promise.all([
     db.query(`SELECT observed_at,service_key,source_id,operator,bus_type,departure_time,arrival_time,

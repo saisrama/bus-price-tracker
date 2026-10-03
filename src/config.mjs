@@ -29,9 +29,28 @@ export function hoursUntilDay(dateString, now = new Date()) {
 }
 
 export function intervalHours(dateString, now = new Date()) {
-  const hours = hoursUntilDay(dateString, now);
+  return intervalForHoursRemaining(hoursUntilDay(dateString, now));
+}
+
+function intervalForHoursRemaining(hours) {
   if (hours > 72) return 12;
   if (hours > 24) return 6;
   if (hours > 6) return 3;
   return 1;
+}
+
+export function hoursUntilDeparture(dateString, departureTime, now = new Date()) {
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*([AP]M))?$/i.exec(String(departureTime ?? '').trim());
+  if (!match) return null;
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (minute > 59 || hour > (match[3] ? 12 : 23) || (match[3] && hour < 1)) return null;
+  if (match[3]) hour = (hour % 12) + (match[3].toUpperCase() === 'PM' ? 12 : 0);
+  const departure = Date.parse(`${dateString}T${String(hour).padStart(2, '0')}:${match[2]}:00+05:30`);
+  return Number.isNaN(departure) ? null : (departure - now.getTime()) / 3_600_000;
+}
+
+export function intervalHoursForBus(dateString, departureTime, now = new Date()) {
+  const hours = hoursUntilDeparture(dateString, departureTime, now);
+  return hours === null ? intervalHours(dateString, now) : intervalForHoursRemaining(hours);
 }

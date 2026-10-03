@@ -74,3 +74,9 @@ export function saveObservations(db, runId, items) {
 export function latestRun(db, route, date) {
   return db.prepare('SELECT * FROM runs WHERE route=? AND travel_date=? ORDER BY started_at DESC LIMIT 1').get(route, date);
 }
+
+export function latestObservations(db, route, date) {
+  const rows = db.prepare(`SELECT service_key, MAX(observed_at) AS observed_at
+    FROM observations WHERE route=? AND travel_date=? GROUP BY service_key`).all(route, date);
+  return new Map(rows.map(row => [row.service_key, row.observed_at]));
+}
