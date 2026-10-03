@@ -54,7 +54,7 @@ function validatedFilter(url) {
 }
 
 function dataFor(route, date) {
-  const observations = db.prepare(`SELECT observed_at,service_key,source_id,operator,bus_type,departure_time,arrival_time,
+  const observations = db.prepare(`SELECT observed_at,travel_date,service_key,source_id,operator,bus_type,departure_time,arrival_time,
       fare_min,fare_max,seats_left,women_seats_left,men_seats_left,source_url
     FROM observations WHERE route=? AND travel_date=? ORDER BY observed_at,operator,departure_time`).all(route.key, date);
   const runs = db.prepare(`SELECT id,started_at,finished_at,status,observed_count,error
@@ -66,6 +66,7 @@ function dataFor(route, date) {
 const appHtml = fs.readFileSync(new URL('../public/index.html', import.meta.url));
 const appJs = fs.readFileSync(new URL('../public/app.js', import.meta.url));
 const appCss = fs.readFileSync(new URL('../public/style.css', import.meta.url));
+const exploreCss = fs.readFileSync(new URL('../public/explore.css', import.meta.url));
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -76,6 +77,13 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname === '/api/config') {
       return json(res, { routes: ROUTES, today: istDate(), tomorrow: addDays(istDate(), 1), canCollect: true });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/dates') {
+      const { route } = validatedFilter(url);
+      const dates = db.prepare(`SELECT travel_date, COUNT(DISTINCT service_key) AS services,
+        COUNT(*) AS snapshots FROM observations WHERE route=?
+        GROUP BY travel_date ORDER BY travel_date DESC`).all(route.key);
+      return json(res, { dates });
     }
     if (req.method === 'POST' && url.pathname === '/api/collect') {
       if (collecting) return json(res, { message: 'Collection already running' }, 409);
@@ -100,6 +108,7 @@ const server = http.createServer(async (req, res) => {
       '/': [appHtml, 'text/html; charset=utf-8'],
       '/app.js': [appJs, 'text/javascript; charset=utf-8'],
       '/style.css': [appCss, 'text/css; charset=utf-8'],
+      '/explore.css': [exploreCss, 'text/css; charset=utf-8'],
     };
     if (req.method === 'GET' && staticFiles[url.pathname]) {
       const [body, type] = staticFiles[url.pathname];

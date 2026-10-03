@@ -14,7 +14,7 @@ Open `http://127.0.0.1:3030`. Keep the process running to collect automatically.
 
 On this computer, the **Bus Fare Tracker** startup task has already been installed. Leave the computer awake and signed in; locking the screen is fine. Use `Get-ScheduledTask -TaskName 'Bus Fare Tracker'` to check it, `Start-ScheduledTask -TaskName 'Bus Fare Tracker'` to start it, and `Stop-ScheduledTask -TaskName 'Bus Fare Tracker'` to stop it. Avoid running `npm.cmd start` at the same time as the task because both processes would try to serve port 3030 and collect the same dates. The SQLite database is intentionally excluded from Git, so a clone on another computer starts with an empty history.
 
-The dashboard shows the latest Volvo/Scania listings, lowest and median route fares, each service's fare and seat history, collection errors, and CSV export. It never inserts sample fares into the real database.
+The dashboard shows the latest recorded Volvo/Scania listing for each service, lowest and median route fares, and every saved fare and seat snapshot for a selected service. Choose a saved travel date to browse older data. Hover or focus any graph point to inspect its observation, and build graphs with selectable axes such as seats left versus fare. Up to six graph layouts can be saved in the browser. Collection errors and CSV export remain available. It never inserts sample fares into the real database.
 
 ## Run while your computer is off (free services)
 

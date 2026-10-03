@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bus Fare Tracker</title>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/explore.css">
 </head>
 <body>
   <header class="topbar">
@@ -13,26 +14,29 @@
   </header>
   <main>
     <section class="intro">
-      <div><p class="eyebrow accent">LIVE PRICE HISTORY</p><h1>Know how the fare moves.</h1><p class="subhead">Every observed Volvo and Scania departure, tracked as booking time runs out.</p></div>
+      <div><p class="eyebrow accent">LIVE PRICE HISTORY</p><h1>Know how the fare moves.</h1><p class="subhead">Explore current and past observations for every tracked Volvo and Scania service.</p></div>
       <div class="intro-actions"><button id="collect-button" type="button">Collect now <span>↗</span></button><a id="export-link" href="#">Export CSV ↓</a></div>
     </section>
     <section class="filters" aria-label="Filters">
       <label>ROUTE<select id="route"></select></label>
       <label>TRAVEL DATE<input id="travel-date" type="date"></label>
+      <label>SAVED DATES<select id="saved-date"><option value="">Choose a date with history</option></select></label>
       <label>FIND A BUS<input id="search" type="search" placeholder="Operator or bus type"></label>
     </section>
     <section class="stats" aria-label="Current snapshot">
-      <article><p>TRACKED BUSES</p><strong id="stat-buses">—</strong><span>Volvo + Scania</span></article>
-      <article><p>LOWEST FARE</p><strong id="stat-low">—</strong><span>Current listed fare</span></article>
-      <article><p>MEDIAN FARE</p><strong id="stat-median">—</strong><span>Across listed buses</span></article>
-      <article><p>LAST CAPTURE</p><strong id="stat-time" class="small-stat">—</strong><span id="stat-captures">0 snapshots stored</span></article>
+      <article><p>TRACKED SERVICES</p><strong id="stat-buses">—</strong><span>Volvo + Scania on this date</span></article>
+      <article><p>LOWEST FARE</p><strong id="stat-low">—</strong><span>Latest recorded per service</span></article>
+      <article><p>MEDIAN FARE</p><strong id="stat-median">—</strong><span>Latest recorded per service</span></article>
+      <article><p>LAST SNAPSHOT</p><strong id="stat-time" class="small-stat">—</strong><span id="stat-captures">0 snapshots stored</span></article>
     </section>
     <section class="status-row"><span id="status-message">Loading observations…</span><span id="status-source">Source: redBus</span></section>
     <section class="chart-grid">
-      <article class="panel market-panel"><div class="panel-header"><div><p class="eyebrow">THE ROUTE</p><h2>Fare movement</h2></div><span class="legend"><i class="legend-dot"></i> Lowest fare&nbsp;&nbsp; <i class="legend-dot muted"></i> Median fare</span></div><div id="market-chart" class="chart"></div></article>
-      <article class="panel detail-panel"><div class="panel-header"><div><p class="eyebrow">SELECTED SERVICE</p><h2 id="selected-title">Choose a bus</h2></div></div><div id="service-chart" class="chart"></div><div id="seat-chart" class="mini-chart"></div></article>
+      <article class="panel market-panel"><div class="panel-header"><div><p class="eyebrow">THE ROUTE</p><h2>Fare movement</h2></div><span class="legend"><i class="legend-dot"></i> Lowest fare&nbsp;&nbsp; <i class="legend-dot muted"></i> Median fare</span></div><p class="panel-note">Latest known fare for each service at each observation time.</p><div id="market-chart" class="chart"></div></article>
+      <article class="panel detail-panel"><div class="panel-header"><div><p class="eyebrow">SELECTED SERVICE</p><h2 id="selected-title">Choose a bus</h2></div></div><div class="service-picker"><label for="service-select">VIEW A SERVICE</label><select id="service-select"></select></div><div id="service-chart" class="chart"></div><div id="seat-chart" class="mini-chart"></div></article>
     </section>
-    <section class="panel listing-panel"><div class="panel-header"><div><p class="eyebrow">LATEST OBSERVATION</p><h2>All tracked departures</h2></div><span id="listing-count" class="pill">0 buses</span></div><div class="table-wrap"><table><thead><tr><th>OPERATOR / COACH</th><th>DEPARTS</th><th>FARE</th><th>SEATS LEFT</th><th>LAST SEEN</th><th></th></tr></thead><tbody id="bus-rows"></tbody></table></div></section>
+    <section class="panel builder-panel"><div class="panel-header"><div><p class="eyebrow">EXPLORE THE DATA</p><h2>Build your own graph</h2></div></div><div class="graph-controls"><label>SERVICES<select id="graph-scope"><option value="selected">Selected service</option><option value="all">All services on this date</option></select></label><label>X AXIS<select id="graph-x"><option value="observed_at">Observation time</option><option value="hours_before">Hours before departure</option><option value="seats_left">Seats left</option><option value="fare_min">Lowest fare</option><option value="fare_max">Highest fare</option><option value="women_seats_left">Women seats left</option><option value="men_seats_left">Men seats left</option></select></label><label>Y AXIS<select id="graph-y"><option value="fare_min">Lowest fare</option><option value="fare_max">Highest fare</option><option value="seats_left">Seats left</option><option value="women_seats_left">Women seats left</option><option value="men_seats_left">Men seats left</option><option value="hours_before">Hours before departure</option></select></label></div><p id="graph-note" class="panel-note"></p><div id="custom-chart" class="custom-chart"></div><div class="builder-actions"><button id="save-graph" type="button">Save this graph</button><span id="save-status">Saved layouts follow the selected route, date, and service on this browser.</span></div><div id="saved-graphs" class="saved-graphs"></div></section>
+    <section class="panel history-panel" id="history"><div class="panel-header"><div><p class="eyebrow">SELECTED SERVICE</p><h2>Observation history</h2></div><span id="history-count" class="pill">0 snapshots</span></div><p id="history-description" class="panel-note">Choose a service to see its past fares and seats.</p><div class="table-wrap"><table><thead><tr><th>OBSERVED</th><th>LOWEST FARE</th><th>HIGHEST FARE</th><th>SEATS LEFT</th><th>WOMEN</th><th>MEN</th></tr></thead><tbody id="history-rows"></tbody></table></div></section>
+    <section class="panel listing-panel"><div class="panel-header"><div><p class="eyebrow">LAST KNOWN PER SERVICE</p><h2>All tracked departures</h2></div><span id="listing-count" class="pill">0 buses</span></div><div class="table-wrap"><table><thead><tr><th>OPERATOR / COACH</th><th>DEPARTS</th><th>FARE</th><th>SEATS LEFT</th><th>LAST SEEN</th><th></th></tr></thead><tbody id="bus-rows"></tbody></table></div></section>
     <footer>Fares are observations, not guaranteed booking prices. Seat restrictions appear only when the source supplies them.</footer>
   </main>
   <script src="/app.js" defer></script>

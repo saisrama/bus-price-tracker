@@ -1,0 +1,42 @@
+.filters { grid-template-columns: 1fr 190px 220px 1fr; }
+.panel-note { margin: 4px 24px 12px; color: #748183; font-size: 12px; line-height: 1.5; }
+.chart, .mini-chart, .custom-chart { position: relative; }
+.chart svg, .mini-chart svg, .custom-chart svg { width: 100%; height: 100%; overflow: visible; }
+.chart circle[data-tip], .mini-chart circle[data-tip], .custom-chart circle[data-tip] { cursor: crosshair; outline: none; }
+.chart circle[data-tip]:hover, .chart circle[data-tip]:focus,
+.mini-chart circle[data-tip]:hover, .mini-chart circle[data-tip]:focus,
+.custom-chart circle[data-tip]:hover, .custom-chart circle[data-tip]:focus { stroke: #172c2e; stroke-width: 2.5px; }
+.axis-tick { fill: #879692; font-size: 10px; font-family: 'DM Sans', Arial, sans-serif; }
+.axis-label { fill: #657671; font-size: 11px; font-weight: 700; font-family: 'DM Sans', Arial, sans-serif; }
+.chart-tooltip { position: absolute; z-index: 4; max-width: min(320px, calc(100% - 16px)); padding: 10px 12px; border: 1px solid #cbded2; border-radius: 9px; background: #fff; box-shadow: 0 8px 28px #172c2e29; color: #172c2e; font-size: 11px; line-height: 1.5; white-space: pre-line; pointer-events: none; }
+.market-panel .chart { height: 355px; }
+.service-picker { display: flex; align-items: center; gap: 12px; margin: 5px 24px 0; }
+.service-picker label { color: #82908c; font-size: 10px; font-weight: 700; letter-spacing: .12em; white-space: nowrap; }
+.service-picker select, .graph-controls select { min-width: 0; border: 1px solid #dce3dc; border-radius: 8px; background: #fff; color: #172c2e; padding: 9px 10px; outline: none; }
+.service-picker select { flex: 1; max-width: 100%; }
+.service-picker select:focus, .graph-controls select:focus { border-color: #0d795e; }
+.builder-panel, .history-panel { margin-bottom: 14px; }
+.graph-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 8px 24px 12px; }
+.graph-controls label { display: flex; flex-direction: column; gap: 7px; color: #82908c; font-size: 10px; font-weight: 700; letter-spacing: .12em; }
+.custom-chart { height: 350px; padding: 3px 20px 19px; }
+.custom-chart .empty { height: 100%; display: grid; place-items: center; padding: 24px; color: #99a6a1; text-align: center; }
+.builder-actions { display: flex; align-items: center; gap: 12px; padding: 0 24px 22px; }
+.builder-actions button { border: 1px solid #0d795e; border-radius: 8px; background: #e3f3ec; color: #0d795e; padding: 9px 12px; font-size: 12px; font-weight: 700; }
+.builder-actions button:hover { background: #d0ebdd; }
+.builder-actions span { color: #82908c; font-size: 11px; }
+.saved-graphs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 0 24px 24px; }
+.saved-graphs:empty { display: none; }
+.saved-graph { min-width: 0; border: 1px solid #e1e6e0; border-radius: 11px; }
+.saved-graph header { display: flex; align-items: start; justify-content: space-between; gap: 10px; padding: 14px 16px 0; }
+.saved-graph h3 { margin: 0; font: 700 13px 'Space Grotesk', sans-serif; }
+.saved-graph header button { border: 0; background: transparent; color: #a2453c; font-size: 11px; }
+.saved-graph .panel-note { margin: 4px 16px 0; }
+.saved-graph .custom-chart { height: 230px; padding: 0 8px 12px; }
+.history-panel .panel-header { padding-bottom: 2px; }
+.history-panel .table-wrap { max-height: 440px; overflow: auto; }
+.history-panel th { position: sticky; top: 0; z-index: 1; }
+.history-panel tbody tr { cursor: default; }
+.history-panel tbody tr:hover { background: #f8faf7; }
+.listing-panel { margin-bottom: 14px; }
+@media (max-width: 1050px) { .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .filters label:last-child { grid-column: auto; } }
+@media (max-width: 650px) { .graph-controls, .saved-graphs { grid-template-columns: 1fr; } .service-picker { align-items: stretch; flex-direction: column; gap: 7px; } .filters { grid-template-columns: 1fr; } .custom-chart { height: 300px; padding: 0 8px 12px; } .market-panel .chart { height: 270px; } .builder-actions { align-items: start; flex-direction: column; } }

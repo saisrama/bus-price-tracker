@@ -95,7 +95,7 @@ export async function latestObservations(db, route, date) {
 
 export async function dataFor(db, route, date) {
   const [observations, runs, sourceStatus] = await Promise.all([
-    db.query(`SELECT observed_at,service_key,source_id,operator,bus_type,departure_time,arrival_time,
+    db.query(`SELECT observed_at,travel_date,service_key,source_id,operator,bus_type,departure_time,arrival_time,
       fare_min,fare_max,seats_left,women_seats_left,men_seats_left,source_url
       FROM observations WHERE route=$1 AND travel_date=$2 ORDER BY observed_at,operator,departure_time`, [route, date]),
     db.query(`SELECT id,started_at,finished_at,status,observed_count,error
@@ -104,4 +104,11 @@ export async function dataFor(db, route, date) {
   ]);
   return { route, date, observations: observations.rows, runs: runs.rows,
     sourceStatus: sourceStatus.rows[0] ?? null, collecting: false, lastCycle: null };
+}
+
+export async function availableDates(db, route) {
+  const { rows } = await db.query(`SELECT travel_date, COUNT(DISTINCT service_key)::integer AS services,
+    COUNT(*)::integer AS snapshots FROM observations WHERE route=$1
+    GROUP BY travel_date ORDER BY travel_date DESC`, [route]);
+  return rows;
 }
